@@ -1,109 +1,132 @@
 #include <iostream>
+#include <vector>
 #include <omp.h>
+
 using namespace std;
 
-void merge(int a[], int l, int m, int r) {
+// Merge Function
+void merge(vector<int> &arr, int st, int mid, int end) {
 
-    int n1 = m - l + 1;
-    int n2 = r - m;
+    vector<int> temp;
 
-    int L[n1], R[n2];
+    int i = st;
+    int j = mid + 1;
+    
+    while(i <= mid && j <= end) {
 
-    for(int i = 0; i < n1; i++)
-        L[i] = a[l + i];
-
-    for(int i = 0; i < n2; i++)
-        R[i] = a[m + 1 + i];
-
-    int i = 0, j = 0, k = l;
-
-    while(i < n1 && j < n2) {
-        if(L[i] < R[j])
-            a[k++] = L[i++];
-        else
-            a[k++] = R[j++];
-    }
-
-    while(i < n1)
-        a[k++] = L[i++];
-
-    while(j < n2)
-        a[k++] = R[j++];
-}
-
-void seqMergeSort(int a[], int l, int r) {
-
-    if(l < r) {
-
-        int m = (l + r) / 2;
-
-        seqMergeSort(a, l, m);
-        seqMergeSort(a, m + 1, r);
-
-        merge(a, l, m, r);
-    }
-}
-
-void parMergeSort(int a[], int l, int r) {
-
-    if(l < r) {
-
-        int m = (l + r) / 2;
-
-        #pragma omp parallel sections
-        {
-            #pragma omp section
-            parMergeSort(a, l, m);
-
-            #pragma omp section
-            parMergeSort(a, m + 1, r);
+        if(arr[i] <= arr[j]) {
+            temp.push_back(arr[i]);
+            i++;
         }
+        else {
+            temp.push_back(arr[j]);
+            j++;
+        }
+    }
 
-        merge(a, l, m, r);
+    // Remaining elements of left half
+    while(i <= mid) {
+        temp.push_back(arr[i]);
+        i++;
+    }
+
+    // Remaining elements of right half
+    while(j <= end) {
+        temp.push_back(arr[j]);
+        j++;
+    }
+
+    // Copy merged elements back to original array
+    for(int idx = 0; idx < temp.size(); idx++) {
+        arr[st + idx] = temp[idx];
     }
 }
+
+
+// Sequential Merge Sort
+void seqMergeSort(vector<int> &arr, int st, int end) {
+
+    if(st >= end)
+        return;
+
+    int mid = (st + end) / 2;
+
+    seqMergeSort(arr, st, mid);
+    seqMergeSort(arr, mid + 1, end);
+
+    merge(arr, st, mid, end);
+}
+
+
+// Parallel Merge Sort
+void parMergeSort(vector<int> &arr, int st, int end) {
+
+    if(st >= end)
+        return;
+
+    int mid = (st + end) / 2;
+
+    #pragma omp parallel sections
+    {
+        #pragma omp section
+        parMergeSort(arr, st, mid);
+
+        #pragma omp section
+        parMergeSort(arr, mid + 1, end);
+    }
+
+    merge(arr, st, mid, end);
+}
+
 
 int main() {
 
-    int a[] = {5, 2, 9, 1, 6};
-    int b[] = {5, 2, 9, 1, 6};
+   int n = 1000;
 
-    int n = 5;
+vector<int> a(n);
+
+for(int i = 0; i < n; i++) {
+    a[i] = rand();
+}
+
+vector<int> b = a;
 
     double start, end;
 
     // Sequential Merge Sort
     start = omp_get_wtime();
 
-    seqMergeSort(a, 0, n - 1);
+    seqMergeSort(a, 0, a.size() - 1);
 
     end = omp_get_wtime();
 
-    cout << "Sequential Time: " << end - start << endl;
+    cout << "Sequential Merge Sort Time: "
+         << end - start << " sec\n";
 
-    cout << "Sorted Array: ";
-    for(int i = 0; i < n; i++)
-        cout << a[i] << " ";
+    cout << "Sequential Sorted Array: ";
 
-    cout << endl;
+    for(int x : a)
+        cout << x << " ";
+
+    cout << "\n\n";
 
 
     // Parallel Merge Sort
     start = omp_get_wtime();
 
-    parMergeSort(b, 0, n - 1);
+    parMergeSort(b, 0, b.size() - 1);
 
     end = omp_get_wtime();
 
-    cout << "Parallel Time: " << end - start << endl;
+    cout << "Parallel Merge Sort Time: "
+         << end - start << " sec\n";
 
-    cout << "Sorted Array: ";
-    for(int i = 0; i < n; i++)
-        cout << b[i] << " ";
+    cout << "Parallel Sorted Array: ";
+
+    for(int x : b)
+        cout << x << " ";
+
+    cout << endl;
 
     return 0;
 }
-
-//g++ -fopenmp merge.cpp -o merge
-
-//./merge
